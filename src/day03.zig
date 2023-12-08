@@ -12,12 +12,6 @@ const gpa = util.gpa;
 const testing = std.testing;
 const isDigit = std.ascii.isDigit;
 const eql = std.mem.eql;
-const tokenize = std.mem.tokenize;
-const tokenizeAny = std.mem.tokenizeAny;
-const tokenizeSeq = std.mem.tokenizeSequence;
-const tokenizeSca = std.mem.tokenizeScalar;
-const splitAny = std.mem.splitAny;
-const splitSeq = std.mem.splitSequence;
 const splitSca = std.mem.splitScalar;
 const indexOf = std.mem.indexOfScalar;
 const indexOfAny = std.mem.indexOfAny;
@@ -25,12 +19,9 @@ const indexOfStr = std.mem.indexOfPosLinear;
 const lastIndexOf = std.mem.lastIndexOfScalar;
 const lastIndexOfAny = std.mem.lastIndexOfAny;
 const lastIndexOfStr = std.mem.lastIndexOfLinear;
-const trim = std.mem.trim;
-const sliceMin = std.mem.min;
-const sliceMax = std.mem.max;
+const reverse = std.mem.reverse;
 
 const parseInt = std.fmt.parseInt;
-const parseFloat = std.fmt.parseFloat;
 
 const print = std.debug.print;
 const assert = std.debug.assert;
@@ -78,14 +69,7 @@ const Num = struct {
 
 const LineLevel = enum { prev, current, next };
 
-/// Takes a num_struct, a line level, and a pointer to a list of points.
-/// Line level just means num_y - 1 for `.prev`, and num_y + 1 for `.next`.
-/// Populates the list that gets passed to the function.
-///
-/// jk
-///
-/// Validates by walking through adjacent cells given the num and the line level.
-//fn populateLineAdjPoints(num: Num, line_level: LineLevel, points: *List(Point)) !void {
+/// Validates by walking through adjacent cells when given a num structure
 fn validateNum(num: *Num) !void {
     if (num.prev_line == null) {
         // handle the very first line
@@ -113,7 +97,6 @@ fn isNumValidFromLine(num: *Num, line: []const u8) !bool {
     const x_width = 140; // number of chars each line holds
 
     const num_x: usize = num.pos.x;
-    //const num_y: usize = num.pos.y;
 
     const is_leftmost = num_x == 0;
     const is_rightmost = num_x + num.len == x_width;
@@ -131,8 +114,6 @@ fn isNumValidFromLine(num: *Num, line: []const u8) !bool {
     var i: u16 = 0;
     while (i < box_len) : (i += 1) {
         const x = start_point + i;
-        //try points.append(Point{ .x = x, .y = y });
-
         // if *any* of these chars are symbols, then validate num and return.
         const c = line[x];
         //print("x is {d} and line[x] is {c}\n", .{ x, line[x] });
@@ -146,17 +127,15 @@ fn isNumValidFromLine(num: *Num, line: []const u8) !bool {
 
 fn part1() !u32 {
     var lines = splitSca(u8, data, '\n');
-
     var total: u32 = 0;
-
     var prev_line: ?[]const u8 = null;
 
     var y: usize = 0;
     while (lines.next()) |line| : (y += 1) {
 
-        // temporary struct that, once completed, gets checked for validity
-        // and then reset before the next number is found and checked.
-        // If the number is "valid", it gets added to the total.
+        // temporary struct that, once completed, gets checked for validity,
+        // then resets before the next number is found and checked.
+        // If the number "is_valid", it gets added to the total.
         var num_struct = Num{
             .prev_line = prev_line,
             .line = line,
@@ -188,8 +167,6 @@ fn part1() !u32 {
 
                 // Validate
                 try validateNum(&num_struct);
-
-                //print("\nResetting num...\n", .{});
             }
 
             if (num_struct.is_complete and num_struct.is_valid) {
@@ -205,13 +182,7 @@ fn part1() !u32 {
                 continue;
             }
 
-            // as long as num_struct is complete, it can be reset at this point.
-            if (num_struct.is_complete) {
-                if (!num_struct.is_valid) {
-                    print("{s}: \x1b[31mNumber is NOT valid!\x1b[0m Not adding.\n", .{num_struct.num});
-                }
-                num_struct.reset();
-            }
+            if (num_struct.is_complete) num_struct.reset();
         } // Loop over chars
 
         prev_line = line;
