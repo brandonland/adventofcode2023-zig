@@ -192,59 +192,11 @@ fn part1() !u32 {
 }
 
 fn part2() !u32 {
-    // The struct for part2 will be a "gear" struct that will hold two "num" structs;
-    // only these num structs will be much simpler:
-    // The only properties the nums need are: pos, num, and len.
-    // I will take a similar approach to part1, except instead of searching for
-    // numbers, I will be searching for asterisk (*) symbols, determining if it is
-    // indeed a valid gear (it has two adjacent nums), and if so, *walk* to the
-    // left-most digit of each number, find its length, and then walk from
-    // the left-most digit to the end in order to capture the number.
-    // It would be more efficient to *first* determine if it is a valid gear
-    // *before* doing all that walking. We don't want to walk digits if we don't
-    // have to.
-    //
     // As a special note: when checking for adjacent nums *above* and *below*
     // a potential gear (asterisk), if it there is a digit *directly above*
     // (not diagonal), then that means *only one* adjacent number exists on that
     // level. Likewise, left/right adjacent checks are easy, because if a
     // digit is left-or-right adjacent, then we know that is also exactly 1 number.
-    //
-    // To make it easier, I will break it down into steps. Let's say we found
-    // an asterisk symbol:
-    //
-    // We will have a mutable variable named "hits". If "hits" ever becomes
-    // greater than 2, then we can bail, because we know this asterisk is
-    // not a "gear". We continue looping through characters to find the next
-    // asterisks. Here are the steps for when we do find an asterisk:
-    //
-    // Step 1: Check for left-and-right adjacent digits. if they exist,
-    // increment "hits" += 1 for each. We can also walk left and right in order
-    // to store these nums in gear.nums so that we don't need multiple passes.
-    // It might not be efficient since we will be doing this even before
-    // determining gear validity, but it will be simpler and less code.
-    // When walking left, we can store each number until we reach a non-digit,
-    // and use the reverse() function to reverse each digit, since we're
-    // walking backwards (this applies to top-left and bottom-left too.)
-    //
-    // Step 2: If gear.prev_line is not null, check for a top-adjacent digit.
-    // If there is a digit there, then we know that only one number can be
-    // above-adjacent, and we increment hits.
-    //
-    // Step 3: If there is no top-adjacent digit, check for top-left and top-right
-    // adjacent digits. If there is a top-left digit, we do the same thing we did
-    // for left-adjacent digits: walk left, and use reverse(). Likewise, top-right
-    // will be the same for right-adjacency.
-    //
-    // Step 4: If gear.next_line is not null, check for a bottom-adjacent digit
-    // as per step 2.
-    //
-    // Step 5: If there is no bottom-adjacent digit, repeat step 3 for this row.
-    //
-    // If at any point "hits" becomes great than 2, bail and move on to next gear.
-    //
-    // Step 6: If exactly two numbers are adjacent, multiply them and add them
-    // to the total before continuing.
 
     const Gear = struct {
         const Self = @This();
@@ -393,7 +345,6 @@ fn part2() !u32 {
                     }
                     j += 1;
                 }
-                //return 0;
             }
             // Collect top numbers:
             if (!gear.is_top() and isDigit(gear.prev_line.?[x])) {
@@ -461,7 +412,6 @@ fn part2() !u32 {
                         }
                         j += 1;
                     }
-                    //return 0;
                 }
             }
             // Collect bottom numbers:
@@ -534,18 +484,12 @@ fn part2() !u32 {
                     }
                 }
             }
-            print("gear.nums: {any}\n", .{gear.nums});
-            print("gear.nums[0]: {d}\n", .{gear.nums[0]});
-            print("gear.nums[1]: {d}\n", .{gear.nums[1]});
 
             total += gear.nums[0] * gear.nums[1];
-            //total = 1;
             gear.reset();
         }
 
         prev_line = line;
-
-        //if (y == 50) break;
     }
 
     return total;
