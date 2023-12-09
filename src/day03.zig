@@ -1,34 +1,12 @@
 const std = @import("std");
-const Allocator = std.mem.Allocator;
-const List = std.ArrayList;
-const Map = std.AutoHashMap;
-const StrMap = std.StringHashMap;
-const BitSet = std.DynamicBitSet;
-
-const util = @import("util.zig");
-const gpa = util.gpa;
 
 // Useful stdlib functions
 const testing = std.testing;
 const isDigit = std.ascii.isDigit;
 const eql = std.mem.eql;
 const splitSca = std.mem.splitScalar;
-const indexOf = std.mem.indexOfScalar;
-const indexOfAny = std.mem.indexOfAny;
-const indexOfStr = std.mem.indexOfPosLinear;
-const lastIndexOf = std.mem.lastIndexOfScalar;
-const lastIndexOfAny = std.mem.lastIndexOfAny;
-const lastIndexOfStr = std.mem.lastIndexOfLinear;
-const reverse = std.mem.reverse;
-
 const parseInt = std.fmt.parseInt;
-
 const print = std.debug.print;
-const assert = std.debug.assert;
-
-const sort = std.sort.block;
-const asc = std.sort.asc;
-const desc = std.sort.desc;
 
 const data = @embedFile("data/day03.txt");
 
@@ -300,7 +278,7 @@ fn part2() !u32 {
             // Since we've run all checks, we can do one more check:
             // if hits is not exactly equal to 2, the gear is not valid.
             if (hits != 2) continue;
-            print("Found a valid gear! Position is y: {d}, x: {d}\n", .{ y, x });
+            //print("Found a valid gear! Position is y: {d}, x: {d}\n", .{ y, x });
             gear.is_valid = true;
 
             // If this code runs, that means the asterisk is a valid gear.
