@@ -45,8 +45,6 @@ const Num = struct {
     }
 };
 
-const LineLevel = enum { prev, current, next };
-
 /// Validates by walking through adjacent cells when given a num structure
 fn validateNum(num: *Num) !void {
     if (num.prev_line == null) {
