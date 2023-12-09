@@ -203,46 +203,352 @@ fn part2() !u32 {
     // It would be more efficient to *first* determine if it is a valid gear
     // *before* doing all that walking. We don't want to walk digits if we don't
     // have to.
+    //
+    // As a special note: when checking for adjacent nums *above* and *below*
+    // a potential gear (asterisk), if it there is a digit *directly above*
+    // (not diagonal), then that means *only one* adjacent number exists on that
+    // level. Likewise, left/right adjacent checks are easy, because if a
+    // digit is left-or-right adjacent, then we know that is also exactly 1 number.
+    //
+    // To make it easier, I will break it down into steps. Let's say we found
+    // an asterisk symbol:
+    //
+    // We will have a mutable variable named "hits". If "hits" ever becomes
+    // greater than 2, then we can bail, because we know this asterisk is
+    // not a "gear". We continue looping through characters to find the next
+    // asterisks. Here are the steps for when we do find an asterisk:
+    //
+    // Step 1: Check for left-and-right adjacent digits. if they exist,
+    // increment "hits" += 1 for each. We can also walk left and right in order
+    // to store these nums in gear.nums so that we don't need multiple passes.
+    // It might not be efficient since we will be doing this even before
+    // determining gear validity, but it will be simpler and less code.
+    // When walking left, we can store each number until we reach a non-digit,
+    // and use the reverse() function to reverse each digit, since we're
+    // walking backwards (this applies to top-left and bottom-left too.)
+    //
+    // Step 2: If gear.prev_line is not null, check for a top-adjacent digit.
+    // If there is a digit there, then we know that only one number can be
+    // above-adjacent, and we increment hits.
+    //
+    // Step 3: If there is no top-adjacent digit, check for top-left and top-right
+    // adjacent digits. If there is a top-left digit, we do the same thing we did
+    // for left-adjacent digits: walk left, and use reverse(). Likewise, top-right
+    // will be the same for right-adjacency.
+    //
+    // Step 4: If gear.next_line is not null, check for a bottom-adjacent digit
+    // as per step 2.
+    //
+    // Step 5: If there is no bottom-adjacent digit, repeat step 3 for this row.
+    //
+    // If at any point "hits" becomes great than 2, bail and move on to next gear.
+    //
+    // Step 6: If exactly two numbers are adjacent, multiply them and add them
+    // to the total before continuing.
 
-    //const Num = struct {
-    //    const Self = @This();
-    //    pos: Point = Point{ .x = undefined, .y = undefined },
-    //    num: [5:0]u8 = [5:0]u8{ 0, 0, 0, 0, 0 }, // container with 5 decimal places
-    //    is_valid: bool = false,
-    //    is_complete: bool = false,
-    //    len: u8 = 0,
-    //    line: []const u8,
-    //    prev_line: ?[]const u8,
-    //    next_line: ?[]const u8,
-
-    //    pub fn reset(self: *Self) void {
-    //        self.pos.reset();
-    //        var i: u8 = 0;
-    //        while (i < self.num.len) : (i += 1) {
-    //            self.num[i] = 0;
-    //        }
-    //        self.is_complete = false;
-    //        self.is_valid = false;
-    //        self.len = 0;
-    //    }
-    //};
-
-    const GearNum = struct {
-        pos: Point = Point{ .x = undefined, .y = undefined },
-        num: [5:0]u8 = [5:0]u8{ 0, 0, 0, 0, 0 },
-        len: u3 = 0,
-    };
     const Gear = struct {
+        const Self = @This();
+
         pos: Point = Point{ .x = undefined, .y = undefined },
+        //nums: [2]?GearNum = [_]GearNum{null, null},
+        nums: [2]u32 = [_]u32{ 0, 0 },
+        line: []const u8,
+        prev_line: ?[]const u8,
+        next_line: ?[]const u8,
         is_valid: bool = false,
-        nums: ?[2]?GearNum = null,
+        is_complete: bool = false,
+
+        pub fn is_leftmost(self: Self) bool {
+            return self.pos.x == 0;
+        }
+        pub fn is_rightmost(self: Self) bool {
+            return self.pos.x == 139;
+        }
+        pub fn is_top(self: Self) bool {
+            return self.prev_line == null;
+        }
+        pub fn is_bottom(self: Self) bool {
+            return self.next_line == null;
+        }
+        pub fn reset(self: *Self) void {
+            self.pos = Point{ .x = 0, .y = 0 };
+            self.is_valid = false;
+            self.is_complete = false;
+            self.nums[0] = 0;
+            self.nums[1] = 0;
+        }
     };
-    _ = Gear;
 
-    //var total: usize = 0;
+    var lines = splitSca(u8, data, '\n');
+    var prev_line: ?[]const u8 = null;
+    var total: u32 = 0;
 
-    //return total;
-    return 0;
+    var y: usize = 0;
+    while (lines.next()) |line| : (y += 1) {
+        var gear = Gear{
+            .line = line,
+            .prev_line = prev_line,
+            .next_line = lines.peek(),
+        };
+
+        for (line, 0..) |c, x| {
+            if (c != '*') continue; // Below code doesn't run unless char is '*'
+
+            gear.pos.x = x;
+            gear.pos.y = y;
+
+            // Check left-right-top-bottom for digits. If these are greater than
+            // 2, then we can continue because it is not a valid gear.
+            // This is just an efficicent check.
+            var hits: u3 = 0;
+            if (!gear.is_leftmost()) {
+                // check left
+                hits += if (isDigit(line[x - 1])) 1 else 0;
+            }
+            if (!gear.is_rightmost()) {
+                // check right
+                hits += if (isDigit(line[x + 1])) 1 else 0;
+            }
+            if (!gear.is_top()) {
+                // check top
+                hits += if (isDigit(gear.prev_line.?[x])) 1 else 0;
+            }
+            if (!gear.is_bottom()) {
+                // check bottom
+                hits += if (isDigit(gear.next_line.?[x])) 1 else 0;
+            }
+            if (hits > 2) continue;
+
+            // Check diagonals, but only if top/bottom are not digits
+            if (!gear.is_top() and !isDigit(gear.prev_line.?[x])) {
+                // if gear is not top row and top cell is not a digit,
+                // we can check top-left/right, but only if not left/rightmost.
+                if (!gear.is_leftmost()) {
+                    hits += if (isDigit(gear.prev_line.?[x - 1])) 1 else 0;
+                }
+                if (!gear.is_rightmost()) {
+                    hits += if (isDigit(gear.prev_line.?[x + 1])) 1 else 0;
+                }
+
+                if (hits > 2) continue;
+            }
+            if (!gear.is_bottom() and !isDigit(gear.next_line.?[x])) {
+                // if gear is not top row and top cell is not a digit,
+                // we can check top-left/right, but only if not left/rightmost.
+                if (!gear.is_leftmost()) {
+                    hits += if (isDigit(gear.next_line.?[x - 1])) 1 else 0;
+                }
+                if (!gear.is_rightmost()) {
+                    hits += if (isDigit(gear.next_line.?[x + 1])) 1 else 0;
+                }
+
+                if (hits > 2) continue;
+            }
+
+            // Since we've run all checks, we can do one more check:
+            // if hits is not exactly equal to 2, the gear is not valid.
+            if (hits != 2) continue;
+            print("Found a valid gear! Position is y: {d}, x: {d}\n", .{ y, x });
+            gear.is_valid = true;
+
+            // If this code runs, that means the asterisk is a valid gear.
+            // Now we can collect the num data and push it to the struct.
+            //
+            // Collect direct left numbers:
+            if (!gear.is_leftmost() and isDigit(line[x - 1])) {
+                var i: u3 = 0;
+                var sel = x - 1; // selected index
+                var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                while (sel >= 0 and isDigit(line[sel])) : (sel -= 1) {
+                    num[num.len - 1 - i] = line[sel];
+                    i += 1;
+                }
+                const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                const num_parsed = try parseInt(u16, num_trimmed, 10);
+                var j: u2 = 0;
+                for (gear.nums) |n| {
+                    if (n == 0) {
+                        gear.nums[j] = num_parsed;
+                        break;
+                    }
+                    j += 1;
+                }
+            }
+            // Collect direct right numbers:
+            if (!gear.is_rightmost() and isDigit(line[x + 1])) {
+                var i: u3 = 0;
+                var sel = x + 1; // selected index
+                var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                while (sel <= 139 and isDigit(line[sel])) : (sel += 1) {
+                    num[i] = line[sel];
+                    i += 1;
+                }
+                const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                const num_parsed = try parseInt(u16, num_trimmed, 10);
+                var j: u2 = 0;
+                for (gear.nums) |n| {
+                    if (n == 0) {
+                        gear.nums[j] = num_parsed;
+                        break;
+                    }
+                    j += 1;
+                }
+                //return 0;
+            }
+            // Collect top numbers:
+            if (!gear.is_top() and isDigit(gear.prev_line.?[x])) {
+                // digit found is middle top.
+                var i: u3 = 0;
+                var sel = x;
+                var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                // set selection to the leftmost digit.
+                while (true) : (sel -= 1) {
+                    if (sel == 0) break;
+                    if (!isDigit(gear.prev_line.?[sel - 1])) break;
+                }
+                // now we can walk right to get full length and capture the number.
+                while (sel <= 139 and isDigit(gear.prev_line.?[sel])) : (sel += 1) {
+                    num[i] = gear.prev_line.?[sel];
+                    i += 1;
+                }
+                const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                const num_parsed = try parseInt(u16, num_trimmed, 10);
+                var j: u2 = 0;
+                for (gear.nums) |n| {
+                    if (n == 0) {
+                        gear.nums[j] = num_parsed;
+                        break;
+                    }
+                    j += 1;
+                }
+            } else if (!gear.is_top()) {
+                if (!gear.is_leftmost() and isDigit(gear.prev_line.?[x - 1])) {
+                    var i: u3 = 0;
+                    var sel = x - 1; // selected index
+                    var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                    while (sel >= 0 and isDigit(gear.prev_line.?[sel])) : (sel -= 1) {
+                        num[num.len - 1 - i] = gear.prev_line.?[sel];
+                        i += 1;
+                        if (sel == 0) break;
+                    }
+                    const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                    const num_parsed = try parseInt(u16, num_trimmed, 10);
+                    var j: u2 = 0;
+                    for (gear.nums) |n| {
+                        if (n == 0) {
+                            gear.nums[j] = num_parsed;
+                            break;
+                        }
+                        j += 1;
+                    }
+                }
+                if (!gear.is_rightmost() and isDigit(gear.prev_line.?[x + 1])) {
+                    // digit found at top-right, but not middle top
+                    var i: u3 = 0;
+                    var sel = x + 1; // selected index
+                    var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                    while (sel <= 139 and isDigit(gear.prev_line.?[sel])) : (sel += 1) {
+                        num[i] = gear.prev_line.?[sel];
+                        i += 1;
+                    }
+                    const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                    const num_parsed = try parseInt(u16, num_trimmed, 10);
+                    var j: u2 = 0;
+                    for (gear.nums) |n| {
+                        if (n == 0) {
+                            gear.nums[j] = num_parsed;
+                            break;
+                        }
+                        j += 1;
+                    }
+                    //return 0;
+                }
+            }
+            // Collect bottom numbers:
+            if (!gear.is_bottom() and isDigit(gear.next_line.?[x])) {
+                // digit found is middle bottom.
+                var i: u3 = 0;
+                var sel = x;
+                var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                // set selection to the leftmost digit.
+                while (true) : (sel -= 1) {
+                    if (sel == 0) break;
+                    if (!isDigit(gear.next_line.?[sel - 1])) break;
+                }
+                // now we can walk right to get full length and capture the number.
+                while (sel <= 139 and isDigit(gear.next_line.?[sel])) : (sel += 1) {
+                    num[i] = gear.next_line.?[sel];
+                    i += 1;
+                }
+                const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                const num_parsed = try parseInt(u16, num_trimmed, 10);
+                var j: u2 = 0;
+                for (gear.nums) |n| {
+                    if (n == 0) {
+                        gear.nums[j] = num_parsed;
+                        break;
+                    }
+                    j += 1;
+                }
+            } else if (!gear.is_bottom()) {
+                // gear is not bottom, but direct bottom is not a digit.
+                if (!gear.is_leftmost() and isDigit(gear.next_line.?[x - 1])) {
+                    // digit found at bottom-left, but not middle bottom
+                    var i: u3 = 0;
+                    var sel = x - 1; // selected index
+                    var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                    while (sel >= 0 and isDigit(gear.next_line.?[sel])) : (sel -= 1) {
+                        num[num.len - 1 - i] = gear.next_line.?[sel];
+                        i += 1;
+                        if (sel == 0) break;
+                    }
+                    const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                    const num_parsed = try parseInt(u16, num_trimmed, 10);
+                    var j: u2 = 0;
+                    for (gear.nums) |n| {
+                        if (n == 0) {
+                            gear.nums[j] = num_parsed;
+                            break;
+                        }
+                        j += 1;
+                    }
+                }
+                if (!gear.is_rightmost() and isDigit(gear.next_line.?[x + 1])) {
+                    // digit found at bottom-right, but not middle top
+                    var i: u3 = 0;
+                    var sel = x + 1; // selected index
+                    var num: [5]u8 = [5]u8{ 0, 0, 0, 0, 0 }; // container
+                    while (sel <= 139 and isDigit(gear.next_line.?[sel])) : (sel += 1) {
+                        num[i] = gear.next_line.?[sel];
+                        i += 1;
+                    }
+                    const num_trimmed = std.mem.trim(u8, &num, &[_]u8{0});
+                    const num_parsed = try parseInt(u16, num_trimmed, 10);
+                    var j: u2 = 0;
+                    for (gear.nums) |n| {
+                        if (n == 0) {
+                            gear.nums[j] = num_parsed;
+                            break;
+                        }
+                        j += 1;
+                    }
+                }
+            }
+            print("gear.nums: {any}\n", .{gear.nums});
+            print("gear.nums[0]: {d}\n", .{gear.nums[0]});
+            print("gear.nums[1]: {d}\n", .{gear.nums[1]});
+
+            total += gear.nums[0] * gear.nums[1];
+            //total = 1;
+            gear.reset();
+        }
+
+        prev_line = line;
+
+        //if (y == 50) break;
+    }
+
+    return total;
 }
 
 pub fn main() !void {
