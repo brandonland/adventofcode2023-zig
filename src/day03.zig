@@ -183,8 +183,6 @@ fn part2() !u32 {
         line: []const u8,
         prev_line: ?[]const u8,
         next_line: ?[]const u8,
-        is_valid: bool = false,
-        is_complete: bool = false,
 
         pub fn is_leftmost(self: Self) bool {
             return self.pos.x == 0;
@@ -200,8 +198,6 @@ fn part2() !u32 {
         }
         pub fn reset(self: *Self) void {
             self.pos = Point{ .x = 0, .y = 0 };
-            self.is_valid = false;
-            self.is_complete = false;
             self.nums[0] = 0;
             self.nums[1] = 0;
         }
@@ -277,7 +273,7 @@ fn part2() !u32 {
             // if hits is not exactly equal to 2, the gear is not valid.
             if (hits != 2) continue;
             //print("Found a valid gear! Position is y: {d}, x: {d}\n", .{ y, x });
-            gear.is_valid = true;
+            //gear.is_valid = true;
 
             // If this code runs, that means the asterisk is a valid gear.
             // Now we can collect the num data and push it to the struct.
