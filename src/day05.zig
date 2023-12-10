@@ -85,8 +85,6 @@ fn part1() !u64 {
             var matched_row: ?[3]u64 = null;
             const input = if (new_input == null) initial_input else new_input.?;
 
-            //print("Section {d}: starting input is {d}\n", .{ section_count, input });
-
             const text = trim(u8, section, chars_to_strip);
             var rows_text = splitSca(u8, text, '\n');
             _ = rows_text.next().?; // Skip title of section
@@ -94,7 +92,6 @@ fn part1() !u64 {
             var rows: List([3]u64) = List([3]u64).init(allocator);
 
             while (rows_text.next()) |line| {
-                //print("{s}\n", .{line});
                 if (eql(u8, line, "")) continue;
                 var cols = splitSca(u8, line, ' ');
                 const col1: u64 = try parseInt(u64, cols.next().?, 10);
