@@ -6,6 +6,7 @@ const print = std.debug.print;
 const eql = std.mem.eql;
 const splitAny = std.mem.splitAny;
 const splitSca = std.mem.splitScalar;
+const tokenizeSca = std.mem.tokenizeScalar;
 const indexOfAny = std.mem.indexOfAny;
 const trim = std.mem.trim;
 const trimLeft = std.mem.trimLeft;
@@ -33,7 +34,7 @@ fn getNumOfWays(comptime T: type, time: T, record: T) T {
 }
 
 fn part1() !usize {
-    var lines = splitSca(u8, data, '\n');
+    var lines = tokenizeSca(u8, data, '\n');
     const times_str = trim(u8, lines.next().?, "Time:"); // time limits
     const distances_str = trim(u8, lines.next().?, "Distance:"); // record distances
 
@@ -41,7 +42,7 @@ fn part1() !usize {
     const dists_trimmed = trimLeft(u8, distances_str, " ");
 
     var times_array: [4]usize = [4]usize{ 0, 0, 0, 0 }; // initialized with zeros
-    var dists_array: [4]usize = [4]usize{ 0, 0, 0, 0 }; // initialized with zeros
+    var dists_array: [4]usize = [4]usize{ 0, 0, 0, 0 };
 
     var times_it = splitAny(u8, times_trimmed, " ");
     var dists_it = splitAny(u8, dists_trimmed, " ");
@@ -72,8 +73,8 @@ fn part1() !usize {
 
 fn part2() !u64 {
     var lines = splitSca(u8, data, '\n');
-    const times_str = trim(u8, lines.next().?, "Time:"); // time limits
-    const distances_str = trim(u8, lines.next().?, "Distance:"); // record distances
+    const times_str = trim(u8, lines.next().?, "Time:");
+    const distances_str = trim(u8, lines.next().?, "Distance:");
     const first_index_times = indexOfAny(u8, times_str, "1234567890").?;
     const first_index_dists = indexOfAny(u8, distances_str, "1234567890").?;
 
