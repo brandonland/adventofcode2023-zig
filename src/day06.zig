@@ -39,6 +39,25 @@ const desc = std.sort.desc;
 
 const data = @embedFile("data/day06.txt");
 
+/// Given a time and a record distance, get the number of ways to win.
+fn getNumOfWays(comptime T: type, time: T, record: T) T {
+    // a list might not be needed for part 1, but it might for part 2. Who knows.
+    //var best_btn_hold_times: List(usize) = List(usize).init(allocator);
+    var num_of_ways: T = 0;
+    var button_time: T = 1;
+    while (button_time < time) : (button_time += 1) {
+        const time_remaining = time - button_time;
+        const distance: T = time_remaining * button_time;
+        //print("Distance: {d}\n", .{distance});
+        // if distance is greater than the record, push this to the list
+        if (distance > record) {
+            //try best_btn_hold_times.append(button_time);
+            num_of_ways += 1;
+        }
+    }
+    return num_of_ways;
+}
+
 fn part1() !usize {
     var lines = splitSca(u8, data, '\n');
     const times_str = trim(u8, lines.next().?, "Time:"); // time limits
@@ -46,12 +65,6 @@ fn part1() !usize {
 
     const times_trimmed = std.mem.trimLeft(u8, times_str, " ");
     const dists_trimmed = std.mem.trimLeft(u8, distances_str, " ");
-
-    print("Times trimmed: {s}\n", .{times_trimmed});
-
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
 
     var times_array: [4]usize = [4]usize{ 0, 0, 0, 0 }; // initialized with zeros
     var dists_array: [4]usize = [4]usize{ 0, 0, 0, 0 }; // initialized with zeros
@@ -77,41 +90,46 @@ fn part1() !usize {
 
     var result: usize = 1;
     for (times_array, dists_array) |time, record| {
-        // a list might not be needed for part 1, but it might for part 2. Who knows.
-        var best_btn_hold_times: List(usize) = List(usize).init(allocator);
-        var button_time: usize = 1;
-        while (button_time < time) : (button_time += 1) {
-            const time_remaining = time - button_time;
-            const distance: usize = time_remaining * button_time;
-            //print("Distance: {d}\n", .{distance});
-            // if distance is greater than the record, push this to the list
-            if (distance > record) {
-                try best_btn_hold_times.append(button_time);
-            }
-        }
-        result *= best_btn_hold_times.items.len;
+        result *= getNumOfWays(usize, time, record);
     }
 
     return result;
 }
 
-fn part2() !u32 {
+/// Removes spaces from a slice
+fn removeSpaces(string: []const u8) []const u8 {
+    var it = splitAny(u8, string, " ");
+    var new_slice = [_]u8{0} ** 100;
+
+    var i: usize = 0;
+    var char_count: usize = 0;
+    while (it.next()) |num| {
+        if (eql(u8, "", num)) continue;
+        for (num[0..]) |c| {
+            new_slice[char_count] = c;
+            char_count += 1;
+        }
+        i += 1;
+    }
+
+    const result: []const u8 = &new_slice;
+    return std.mem.trimRight(u8, result, &[_]u8{0});
+}
+
+fn part2() !u64 {
     var lines = splitSca(u8, data, '\n');
     const times_str = trim(u8, lines.next().?, "Time:"); // time limits
     const distances_str = trim(u8, lines.next().?, "Distance:"); // record distances
     const first_index_times = indexOfAny(u8, times_str, "1234567890").?;
     const first_index_dists = indexOfAny(u8, distances_str, "1234567890").?;
+
     const time_slice = trim(u8, times_str[first_index_times..], " ");
     const dists_slice = trim(u8, distances_str[first_index_dists..], " ");
 
-    print("Time line: {s}\n", .{times_str});
-    print("Distance line: {s}\n", .{distances_str});
-    print("first index of times: {d}\n", .{first_index_times});
-    print("first index of dists: {d}\n", .{first_index_dists});
-    print("time slice: {s}\n", .{time_slice});
-    print("dists slice: {s}\n", .{dists_slice});
+    const time = try parseInt(u64, removeSpaces(time_slice), 10);
+    const dists = try parseInt(u64, removeSpaces(dists_slice), 10);
 
-    return 0;
+    return getNumOfWays(u64, time, dists);
 }
 
 pub fn main() !void {
